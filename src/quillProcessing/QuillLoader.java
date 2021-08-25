@@ -28,6 +28,7 @@ public class QuillLoader {
   public JSONObject json;
   public int numStrokes;
   public ArrayList<QuillStroke> strokes;
+  public float scale = 10;
 
   private ZipFile zipFile;
   private ArrayList<String> fileNames;
@@ -40,6 +41,8 @@ public class QuillLoader {
   }
 
   public void read(String _url) {
+    // A quill zipfile should contain three items: Quill.json, Quill.qbin, and State.json
+    // Quill.json describes data structures with an index in the Quill.qbin binary blob.
     try {
       url = getFilePath(_url);
       zipFile = new ZipFile(url);
@@ -50,8 +53,8 @@ public class QuillLoader {
         fileNames.add(entries.nextElement().getName());
       }
 
-      json = parent.parseJSONObject(readEntryAsString("metadata.json"));
-  		bytes = readEntryAsBytes("data.sketch");
+      json = parent.parseJSONObject(readEntryAsString("Quill.json"));
+  		bytes = readEntryAsBytes("Quill.qbin");
       
       parseQuill();
 
@@ -64,62 +67,54 @@ public class QuillLoader {
   private void parseQuill() {   
     strokes = new ArrayList<QuillStroke>();
 
-    numStrokes = getInt(bytes, 16);
+    for (int i=0; i < json.getJSONObject("Sequence").getJSONObject("RootLayer").getJSONObject("Implementation").getJSONArray("Children").size(); i++) {
+      JSONObject childNode = (JSONObject) json.getJSONObject("Sequence").getJSONObject("RootLayer").getJSONObject("Implementation").getJSONArray("Children").get(i);
 
-    int offset = 20;
+      for (int j=0; j < childNode.getJSONObject("Implementation").getJSONArray("Drawings").size(); j++) {
+        JSONObject drawingNode  = (JSONObject) childNode.getJSONObject("Implementation").getJSONArray("Drawings").get(j);
+        
+        int dataFileOffset = (int) Long.parseLong("0x" + drawingNode.getJSONObject("DataFileOffset").toString(), 16);
 
-    for (int i = 0; i < numStrokes; i++) {
-      int brushIndex = getInt(bytes, offset);
+        int numNodeStrokes = getInt(bytes, dataFileOffset);
+        numStrokes += numNodeStrokes;
+        
+        int offset = dataFileOffset + 4;
 
-      float r = getFloat(bytes, offset + 4) * 255;
-      float g = getFloat(bytes, offset + 8) * 255;
-      float b = getFloat(bytes, offset + 12) * 255;
-      float a = getFloat(bytes, offset + 16) * 255;
-      int brushColor = parent.color(r, g, b, a);
+        for (int k = 0; k < numNodeStrokes; k++) {
+          ArrayList<PVector> positions = new ArrayList<PVector>();
+          ArrayList<Integer> colors = new ArrayList<Integer>();
+          ArrayList<Float> widths = new ArrayList<Float>();
 
-      float brushSize = getFloat(bytes, offset + 20);
-      int strokeMask = getUInt(bytes, offset + 24);
-      int controlPointMask = getUInt(bytes, offset + 28);
+          offset += 36;
 
-      int offsetStrokeMask = 0;
-      int offsetControlPointMask = 0;
+          int numVertices = getInt(bytes, offset);
 
-      for (int j = 0; j < 4; j++) {
-        byte bb = (byte) (1 << j);
-        if ((strokeMask & bb) > 0) offsetStrokeMask += 4;
-        if ((controlPointMask & bb) > 0) offsetControlPointMask += 4;
+          offset += 4;
+
+          for (int l = 0; l < numVertices; l++) {
+              float x = getFloat(bytes, offset + 0);
+              float y = getFloat(bytes, offset + 4);
+              float z = getFloat(bytes, offset + 8);
+              positions.add(new PVector(x, y, z).mult(scale));
+
+              offset += 36;
+
+              float r = getFloat(bytes, offset + 0) * 255;
+              float g = getFloat(bytes, offset + 4) * 255;
+              float b = getFloat(bytes, offset + 8) * 255;
+              float a = getFloat(bytes, offset + 12) * 255;
+              colors.add(parent.color(r, g, b, a));
+
+              offset += 16;
+
+              widths.add(getFloat(bytes, offset + 0));
+
+              offset += 4;
+          }
+
+          strokes.add(new QuillStroke(parent, positions, widths, colors));
+        }
       }
-
-      //parent.println("1. " + brushIndex + ", [" + brushColorArray[0] + ", " + brushColorArray[1] + ", " + brushColorArray[2] + ", " + brushColorArray[3] + "]," + brushSize);
-      //parent.println("2. " + offsetStrokeMask + "," + offsetControlPointMask + "," + strokeMask + "," + controlPointMask);
-
-      offset += 28 + offsetStrokeMask + 4; 
-
-      int numControlPoints = getInt(bytes, offset);
-
-      //parent.println("3. " + numControlPoints);
-
-      ArrayList<PVector> positions = new ArrayList<PVector>();
-
-      offset += 4;
-
-      for (int j = 0; j < numControlPoints; j++) {
-        float x = getFloat(bytes, offset + 0);
-        float y = getFloat(bytes, offset + 4);
-        float z = getFloat(bytes, offset + 8);
-        positions.add(new PVector(x, y, z));
-
-        //float qw = getFloat(bytes, offset + 12);
-        //float qx = getFloat(bytes, offset + 16);
-        //float qy = getFloat(bytes, offset + 20);
-        //float qz = getFloat(bytes, offset + 24);
-
-        offset += 28 + offsetControlPointMask; 
-      }
-
-      //parent.println("4. " + positions.get(0).x + ", " + positions.get(0).y + ", " + positions.get(0).z);
-
-      strokes.add(new QuillStroke(parent, positions, brushSize, brushColor));
     }
   }
 

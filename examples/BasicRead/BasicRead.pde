@@ -1,8 +1,8 @@
 import peasy.PeasyCam;
-import tiltProcessing.*;
+import quillProcessing.*;
 
 PeasyCam cam;
-TiltLoader tl;
+QuillLoader ql;
 PShape shp;
 
 void setup() {
@@ -14,10 +14,10 @@ void setup() {
   float cameraZ = (height/2.0) / tan(fov/2.0);
   perspective(fov, float(width)/float(height), cameraZ/100.0, cameraZ*100.0);
   
-  tl = new TiltLoader(this, "sketch.tilt");
+  ql = new QuillLoader(this, "grass_00.quill");
   shp = createShape(GROUP);
   
-  for (TiltStroke ts : tl.strokes) {
+  for (QuillStroke ts : ql.strokes) {
     PShape sShp = createShape();
     
     sShp.beginShape();
