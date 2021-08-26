@@ -17,14 +17,14 @@ void setup() {
   ql = new QuillLoader(this, "grass_00.quill");
   shp = createShape(GROUP);
   
-  for (QuillStroke ts : ql.strokes) {
+  for (QuillStroke qs : ql.strokes) {
     PShape sShp = createShape();
     
     sShp.beginShape();
-    sShp.stroke(ts.brushColor);
-    sShp.strokeWeight(ts.brushSize * 30);
+    sShp.stroke(qs.brushColor);
+    sShp.strokeWeight(qs.brushSize * 100);
     sShp.noFill();
-    for (PVector p : ts.positions) {
+    for (PVector p : qs.positions) {
       p.mult(10);
       sShp.vertex(p.x, p.y, p.z);
     }
@@ -34,10 +34,10 @@ void setup() {
 }
 
 void draw() {
-  background(127);
+  background(63);
   
   pushMatrix();
-  translate(-80, 120, 0);
+  //translate(-80, 120, 0);
   rotateX(radians(90));
   rotateY(radians(90));
   rotateZ(radians(90));

@@ -64,16 +64,30 @@ public class QuillLoader {
     }
   }
 
-  private void parseQuill() {   
+  private void parseQuill() {      
     strokes = new ArrayList<QuillStroke>();
 
-    for (int i=0; i < json.getJSONObject("Sequence").getJSONObject("RootLayer").getJSONObject("Implementation").getJSONArray("Children").size(); i++) {
+    int childCount = json.getJSONObject("Sequence").getJSONObject("RootLayer").getJSONObject("Implementation").getJSONArray("Children").size();
+    //parent.println("Found " + childCount + " child nodes.");
+
+    for (int i=0; i < childCount; i++) {
       JSONObject childNode = (JSONObject) json.getJSONObject("Sequence").getJSONObject("RootLayer").getJSONObject("Implementation").getJSONArray("Children").get(i);
 
-      for (int j=0; j < childNode.getJSONObject("Implementation").getJSONArray("Drawings").size(); j++) {
+      // skip the child node if it contains no drawings
+      int drawingCount = 0;
+      try {
+        drawingCount = childNode.getJSONObject("Implementation").getJSONArray("Drawings").size();
+      } catch (Exception e) { 
+        continue;
+      }
+      //parent.println("Found " + drawingCount + " drawings in child " + i + ".");
+
+      for (int j=0; j < drawingCount; j++) {
         JSONObject drawingNode  = (JSONObject) childNode.getJSONObject("Implementation").getJSONArray("Drawings").get(j);
         
-        int dataFileOffset = (int) Long.parseLong("0x" + drawingNode.getJSONObject("DataFileOffset").toString(), 16);
+        String dataFileOffsetString = drawingNode.getString("DataFileOffset");
+
+        int dataFileOffset = (int) Long.parseLong(dataFileOffsetString, 16);
 
         int numNodeStrokes = getInt(bytes, dataFileOffset);
         numStrokes += numNodeStrokes;
