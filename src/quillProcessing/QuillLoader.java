@@ -23,7 +23,6 @@ import processing.data.JSONObject;
 public class QuillLoader {
 
 	PApplet parent;
-	public String url;
 	public byte[] bytes;
   public JSONObject json;
   public int numStrokes;
@@ -35,16 +34,22 @@ public class QuillLoader {
 
 	public QuillLoader(PApplet _parent, String _url) {
     parent = _parent;
-    url = _url;
 
-    read(url);
+    read(_url);
   }
 
+  public QuillLoader(PApplet _parent, String _urlJson, String _urlBin) {
+    parent = _parent;
+
+    read(_urlJson, _urlBin);
+  }
+
+  // A quill zipfile should contain three items: Quill.json, Quill.qbin, and State.json
+  // Quill.json describes data structures with an index in the Quill.qbin binary blob.
   public void read(String _url) {
-    // A quill zipfile should contain three items: Quill.json, Quill.qbin, and State.json
-    // Quill.json describes data structures with an index in the Quill.qbin binary blob.
+    // Read from a single zipfile.
     try {
-      url = getFilePath(_url);
+      String url = getFilePath(_url);
       zipFile = new ZipFile(url);
       
       fileNames = new ArrayList<String>();
@@ -59,6 +64,21 @@ public class QuillLoader {
       parseQuill();
 
       zipFile.close();
+    } catch (Exception e) {
+      parent.println(e);
+    }
+  }
+
+  public void read(String _urlJson, String _urlBin) {
+    // Read json and bin as separate files.
+    try {
+      String urlJson = getFilePath(_urlJson);
+      String urlBin = getFilePath(_urlBin);
+      
+      json = parent.loadJSONObject(urlJson);
+      bytes = parent.loadBytes(urlBin);
+      
+      parseQuill();
     } catch (Exception e) {
       parent.println(e);
     }
