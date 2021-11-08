@@ -1,0 +1,11 @@
+name=Quill for Processing
+category=Animation
+authors=[Nick Fox-Gieg](https://fox-gieg.com)
+url=https://github.com/n1ckfg/quillProcessing
+sentence=Read Quill files in Processing.
+paragraph=
+version=1
+prettyVersion=1.0.0
+lastUpdated=0
+minRevision=266
+maxRevision=0
